@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cyber DJ</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#000;--panel:#0b0b0b;--line:#262626;--muted:#777;--white:#fff}
+body{min-height:100vh;background:#000;color:#fff;font-family:Arial,Helvetica,sans-serif;overflow:hidden}
+.bg{position:fixed;inset:0;background:radial-gradient(circle at 50% 35%,#1a1a1a 0,#0a0a0a 34%,#000 72%),radial-gradient(ellipse at 20% 80%,#1c1c1c 0,transparent 55%),radial-gradient(ellipse at 80% 20%,#181818 0,transparent 50%);z-index:-3}
+.grid{position:fixed;inset:0;opacity:.12;background-image:linear-gradient(#fff1 1px,transparent 1px),linear-gradient(90deg,#fff1 1px,transparent 1px);background-size:60px 60px;transform:perspective(700px) rotateX(58deg) scale(1.7);transform-origin:center bottom;z-index:-2}
+.scan{position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent 0,transparent 4px,#fff000000 5px);pointer-events:none;z-index:-1}
+.page{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:25px}
+.wrap{width:430px;max-width:100%;text-align:center;animation:in .45s ease}
+@keyframes in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.logo{width:105px;height:105px;margin:0 auto 25px;position:relative;display:flex;align-items:center;justify-content:center}
+.logo-ring{position:absolute;inset:3px;border:2px solid #fff;border-radius:50%;box-shadow:0 0 25px #fff2}
+.logo-ring:before,.logo-ring:after{content:"";position:absolute;inset:12px;border:1px solid #555;border-radius:50%}
+.logo-star{font-size:42px;line-height:1;font-weight:900;transform:scaleX(1.15);text-shadow:0 0 16px #fff8}
+.logo-bar{position:absolute;background:#fff}
+.logo-bar.one{width:125px;height:1px;opacity:.25}.logo-bar.two{height:125px;width:1px;opacity:.25}
+.brand{font-size:11px;letter-spacing:6px;font-weight:800;color:#888;margin-bottom:10px}
+h1{font-size:38px;letter-spacing:-2px;font-weight:900}
+.sub{color:#888;margin:9px 0 28px;font-size:14px}
+.card{background:rgba(10,10,10,.94);border:1px solid var(--line);padding:30px;box-shadow:0 30px 100px #000c}
+.choice{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.choice button{height:58px;border:1px solid #444;background:#111;color:#fff;font-weight:900;letter-spacing:1px;cursor:pointer;font-size:13px;transition:.2s}
+.choice button:first-child{background:#fff;color:#000;border-color:#fff}
+.choice button:hover{transform:translateY(-2px);border-color:#fff}
+.note{margin-top:22px;color:#555;font-size:10px;letter-spacing:1.5px}
+.form{display:none;text-align:left}
+.label{display:block;font-size:10px;letter-spacing:2px;color:#777;font-weight:800;margin:0 0 8px}
+input{width:100%;height:52px;background:#050505;border:1px solid #292929;color:#fff;padding:0 14px;font-size:15px;outline:none;margin-bottom:17px}
+input:focus{border-color:#aaa}
+.password{position:relative}.password input{padding-right:65px}.show{position:absolute;right:0;top:0;width:62px;height:52px;border:0;background:none;color:#666;font-size:9px;cursor:pointer}.show:hover{color:#fff}
+.submit{width:100%;height:52px;background:#fff;color:#000;border:0;font-weight:900;letter-spacing:2px;cursor:pointer}
+.submit:hover{background:#ddd}.submit:disabled{opacity:.5;cursor:wait}
+.orb{position:fixed;border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,0.18) 0%,rgba(255,255,255,0.04) 50%,transparent 70%);pointer-events:none;z-index:-1;animation:orbFloat linear infinite}
+@keyframes orbFloat{0%{transform:translateY(0) translateX(0) scale(1);opacity:0}10%{opacity:1}90%{opacity:.6}100%{transform:translateY(-110vh) translateX(var(--drift)) scale(var(--scale-end));opacity:0}}
+.back{width:100%;margin-top:13px;height:42px;background:transparent;color:#777;border:0;cursor:pointer;font-size:11px;letter-spacing:1px}.back:hover{color:#fff}
+.message{min-height:19px;text-align:center;font-size:11px;color:#777;margin-top:13px;line-height:1.4}.error{color:#ff7070}.success{color:#fff}
+.status{margin-top:20px;color:#444;font-size:9px;letter-spacing:2px}.dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff;margin-right:7px}
+#dashboard{display:none}.dashboard{padding:35px;text-align:center;background:#0b0b0b;border:1px solid #292929}.dashboard h2{font-size:30px}.dashboard p{color:#777;margin:10px 0 25px}.logout{height:50px;width:100%;background:#fff;border:0;font-weight:900;cursor:pointer}
+@media(max-width:500px){.choice{grid-template-columns:1fr}.card{padding:22px}h1{font-size:31px}}
+</style>
+</head>
+<body>
+<div class="bg"></div><div class="grid"></div><div class="scan"></div>
+<div id="orbs"></div>
+
+<main class="page"><div class="wrap">
+
+<div id="start">
+  <div class="logo">
+    <div class="logo-ring"></div>
+    <div class="logo-bar one"></div>
+    <div class="logo-bar two"></div>
+    <div class="logo-star">✦</div>
+  </div>
+  <div class="brand">CYBER DJ</div>
+  <h1>CYBER DJ</h1>
+  <div class="card">
+    <div class="choice">
+      <button id="loginChoice">LOG IN</button>
+      <button id="signupChoice">SIGN UP</button>
+    </div>
+    <div class="note">SELECT AN OPTION TO CONTINUE</div>
+  </div>
+
+</div>
+
+<div id="authForm" class="card form">
+  <div class="brand" style="text-align:center">CYBER DJ</div>
+  <h2 id="formTitle" style="text-align:center;font-size:28px;margin-bottom:8px">LOG IN</h2>
+  <p id="formSub" style="text-align:center;color:#777;font-size:13px;margin-bottom:25px">Welcome back</p>
+  <label class="label">EMAIL</label>
+  <input id="email" type="email" placeholder="ENTER EMAIL" autocomplete="email">
+  <label class="label">PASSWORD</label>
+  <div class="password">
+    <input id="password" type="password" placeholder="ENTER PASSWORD" minlength="6">
+    <button class="show" id="show" type="button">SHOW</button>
+  </div>
+  <button class="submit" id="submit" type="button">LOG IN</button>
+
+  <button class="back" id="back" type="button">← BACK TO OPTIONS</button>
+  <div class="message" id="message"></div>
+</div>
+
+<div id="dashboard" class="dashboard">
+  <div class="brand">CYBER DJ</div>
+  <h2>ACCESS GRANTED</h2>
+  <p id="userEmail">Logged in</p>
+  <button class="logout" id="logout">LOG OUT</button>
+</div>
+
+</div></main>
+
+<script>
+/*
+  IMPORTANT:
+  1. Create a project at https://supabase.com
+  2. Put your Project URL and Publishable/Anon key below.
+  3. Enable Email in Authentication > Providers.
+  4. Enable Google there too if you want Google login.
+  5. For Google, configure the OAuth credentials in Supabase.
+*/
+const SUPABASE_URL="PASTE_YOUR_SUPABASE_PROJECT_URL_HERE";
+const SUPABASE_KEY="PASTE_YOUR_SUPABASE_PUBLISHABLE_KEY_HERE";
+
+const configured=!SUPABASE_URL.includes("PASTE_")&&!SUPABASE_KEY.includes("PASTE_");
+const client=configured?window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+
+const start=document.getElementById("start");
+const authForm=document.getElementById("authForm");
+const dashboard=document.getElementById("dashboard");
+const loginChoice=document.getElementById("loginChoice");
+const signupChoice=document.getElementById("signupChoice");
+const formTitle=document.getElementById("formTitle");
+const formSub=document.getElementById("formSub");
+const submit=document.getElementById("submit");
+
+const back=document.getElementById("back");
+const email=document.getElementById("email");
+const password=document.getElementById("password");
+const show=document.getElementById("show");
+const message=document.getElementById("message");
+const logout=document.getElementById("logout");
+const userEmail=document.getElementById("userEmail");
+
+let mode="login";
+
+function msg(text,type=""){
+  message.textContent=text;
+  message.className="message"+(type?" "+type:"");
+}
+
+function openForm(selected){
+  mode=selected;
+  start.style.display="none";
+  authForm.style.display="block";
+  msg("");
+  email.value="";
+  password.value="";
+  if(mode==="login"){
+    formTitle.textContent="LOG IN";
+    formSub.textContent="Welcome back to Cyber DJ";
+    submit.textContent="LOG IN";
+  }else{
+    formTitle.textContent="SIGN UP";
+    formSub.textContent="Create your Cyber DJ account";
+    submit.textContent="CREATE ACCOUNT";
+  }
+}
+
+loginChoice.onclick=()=>openForm("login");
+signupChoice.onclick=()=>openForm("signup");
+
+back.onclick=()=>{
+  authForm.style.display="none";
+  start.style.display="block";
+  msg("");
+};
+
+show.onclick=()=>{
+  if(password.type==="password"){
+    password.type="text";
+    show.textContent="HIDE";
+  }else{
+    password.type="password";
+    show.textContent="SHOW";
+  }
+};
+
+submit.onclick=async()=>{
+  if(!client){
+    msg("CONNECT SUPABASE FIRST — ADD YOUR URL AND KEY TO THE CODE.","error");
+    return;
+  }
+
+  const e=email.value.trim();
+  const p=password.value;
+
+  if(!e||!p){
+    msg("ENTER YOUR EMAIL AND PASSWORD.","error");
+    return;
+  }
+
+  submit.disabled=true;
+
+  try{
+    if(mode==="signup"){
+      msg("CREATING ACCOUNT...");
+      const {data,error}=await client.auth.signUp({email:e,password:p});
+      if(error)throw error;
+
+      if(data.session){
+        showDashboard(data.user);
+      }else{
+        msg("ACCOUNT CREATED. CHECK YOUR EMAIL TO VERIFY IT.","success");
+      }
+    }else{
+      msg("LOGGING IN...");
+      const {data,error}=await client.auth.signInWithPassword({email:e,password:p});
+      if(error)throw error;
+      showDashboard(data.user);
+    }
+  }catch(err){
+    console.error(err);
+    msg(err.message||"AUTHENTICATION FAILED.","error");
+  }finally{
+    submit.disabled=false;
+  }
+};
+
+// Floating orbs
+(function(){
+  const container=document.getElementById("orbs");
+  const count=14;
+  for(let i=0;i<count;i++){
+    const orb=document.createElement("div");
+    orb.className="orb";
+    const size=Math.random()*90+30;
+    const left=Math.random()*100;
+    const delay=Math.random()*18;
+    const dur=Math.random()*20+18;
+    const drift=(Math.random()-0.5)*200;
+    const scaleEnd=Math.random()*0.6+0.7;
+    orb.style.cssText=`width:${size}px;height:${size}px;left:${left}%;bottom:${Math.random()*-20}%;--drift:${drift}px;--scale-end:${scaleEnd};animation-duration:${dur}s;animation-delay:-${delay}s;`;
+    container.appendChild(orb);
+  }
+})();
+
+function showDashboard(user){
+  start.style.display="none";
+  authForm.style.display="none";
+  dashboard.style.display="block";
+  userEmail.textContent=user?.email||"Authenticated user";
+}
+
+function showStart(){
+  dashboard.style.display="none";
+  authForm.style.display="none";
+  start.style.display="block";
+}
+
+logout.onclick=async()=>{
+  if(client)await client.auth.signOut();
+  showStart();
+};
+
+async function checkSession(){
+  if(!client)return;
+  try{
+    const {data}=await client.auth.getSession();
+    if(data.session)showDashboard(data.session.user);
+  }catch(err){
+    console.error(err);
+  }
+}
+
+if(client){
+  client.auth.onAuthStateChange((event,session)=>{
+    if(event==="SIGNED_IN"&&session)showDashboard(session.user);
+    if(event==="SIGNED_OUT")showStart();
+  });
+  checkSession();
+}
+</script>
+</body>
+</html>
